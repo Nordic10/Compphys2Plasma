@@ -23,8 +23,8 @@ void distribute_particles(particle* p, grid_struct* grid, int np, int nx, int ny
       p[i].r.y = random_float(i, false)* dy;
       x = (int)roundf(p[i].r.x / dx);
       y = (int)roundf(p[i].r.y / dy);
-      x_ = abs((p[i].r.x / dx - x) * 2 + 1);
-      y_ = abs((p[i].r.y / dx - y) * 2 + 1);
+      x_ = abs((p[i].r.x / dx - x) + 0.5f);
+      y_ = abs((p[i].r.y / dx - y) + 0.5f);
       idx = nx * y + x;
       weight = q;
       grid->rho[idx] += weight * y_ * x_;
@@ -84,8 +84,8 @@ void field_deposition(particle* list, grid_struct* grid, int np, int nx, int ny,
       p = &list[i];
       x = (int)roundf(p->r.x / dx);
       y = (int)roundf(p->r.y / dy);
-      x_ = abs((p->r.x / dx - x) * 2 + 1);
-      y_ = abs((p->r.y / dx - y) * 2 + 1);
+      x_ = abs((p->r.x / dx - x) + 0.5f);
+      y_ = abs((p->r.y / dx - y) + 0.5f);
       idx = nx * y + x;
       weight = q;
       grid->j[idx].x += p->v.x * dt * weight * x_;
@@ -162,8 +162,8 @@ void field_gathering(particle* list, grid_struct* grid, int np, int nx, int ny, 
       p = &list[i];
       x = (int)roundf(p->r.x / dx);
       y = (int)roundf(p->r.y / dy);
-      x_ = abs((p->r.x / dx - x) * 2 + 1);
-      y_ = abs((p->r.y / dx - y) * 2 + 1);
+      x_ = abs((p->r.x / dx - x) + 0.5f);
+      y_ = abs((p->r.y / dx - y) + 0.5f);
       idx = nx * y + x;
       weight = q;
       
@@ -285,7 +285,7 @@ void print_output(const char* filename, particle* p_list, int n, bool app)
   for (int i = 0; i < n; i++)
     {
       p = p_list[i];
-      outfile << p.r.x << ',' << p.r.y << ',' << p.r.z << ',' << std::endl;
+      outfile << p.r.x << ',' << p.r.y << ',' << p.r.z << std::endl;
     } 
 }
 
