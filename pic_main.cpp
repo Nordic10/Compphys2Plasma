@@ -2,56 +2,76 @@
 
 int main()
 {
+  //--------------------Simulation Constants--------------------//
   // Particle Count
-  int np = 10000;
+  np = 10000;
 
   // Electron Density
   float ne = 1 * powf(10, 6);
   
-  // Laser Count
-  int nl = 1;
-  
   // Grid Number
-  int nx = 127;
-  int ny = 127;
-  nx++; ny++;
+  nx = 128;
+  ny = 128;
   
   // Grid Spacing
-  float dx = 1 * powf(10, -6);
-  float dy = 1 * powf(10, -6);
-  float dz = 1 * powf(10, -6);
+  dx = 1 * powf(10, -6);
+  dy = 1 * powf(10, -6);
+  dz = 1 * powf(10, -6);
   
   // Time Step
-  float dt = 1 * powf(10, -9);
+  dt = 1 * powf(10, -9);
   
   // Step Count
-  int nt = 100;
+  nt = 100;
   
   // Material Constants
-  float c = 2.9979f * powf(10, -8);
-  float e0 = 8.85f * powf(10, -12);
-  float mu0 = 1.26f * powf(10, -6);
+  c = 2.9979f * powf(10, -8);
+  e0 = 8.85f * powf(10, -12);
+  mu0 = 1.26f * powf(10, -6);
   
   // Particle Constants
-  float q = 1.6f * powf(10, -19) * (ne * dx * dy / 4);
-  float m = 9.1f * powf(10, -31) * (ne * dx * dy / 4);
+  q = 1.6f * powf(10, -19) * (ne * dx * dy / 4);
+  m = 9.1f * powf(10, -31) * (ne * dx * dy / 4);
+
+  //--------------------External Fields and Boundary Conditions--------------------//
+  //Create External Fields
+  external_field* ext_field = new external_field;
+  if (ext_field != nullptr)
+    {
+      ext_field->E = new float3[nx*ny]();
+      ext_field->B = new float3[nx*ny]();
+      for (int x = 0; x < nx; x++)
+	for (int y = 0; y < ny; y++)
+	  {
+	    //ext_fields->E[y*nx+x] = {f(x), f(y), f(z)};
+	    //ext_fields->B[y*nx+x] = {f(x), f(y), f(z)};
+	  }
+    }
+
+  // Create Walls
+  wall_boundary* walls = nullptr;
+  if (walls != nullptr)
+    for (int x = 0; x < nx; x++)
+      for (int y = 0; y < ny; y++)
+	{
+	  //walls->wall[y*nx+x] = 1;
+	}
   
   particle* particles = new particle[np];
   grid_struct* grid = new grid_struct;
   
-  distribute_particles(particles, grid, np, nx, ny, dx, dy, q);
-  initialize_fields(grid, nx, ny, dx, dy, e0);
-  print_output("outfile.txt", particles, np, false);
+  distribute_particles(particles, grid);
+  initialize_fields(grid);
+  print_output("outfile.txt", particles, false);
   for (int t = 0; t < nt; ++t)
     {
-      field_deposition(particles, grid, np, nx, ny, dx, dy, dt, q);
-      //update_lasers(lasers, grid, nl, nx, ny, dx, dy, dz, t);
-      update_fields(grid, nx, ny, dx, dy, dz, dt, e0, mu0);
-      field_gathering(particles, grid, np, nx, ny, dx, dy, q);
-      push_particles(particles, np, nx, ny, dt, q, m, c);
-      reset_grid(grid, nx, ny);
+      field_deposition(particles, grid);
+      update_fields(grid);
+      field_gathering(particles, grid, ext_field);
+      push_particles(particles);
+      reset_grid(grid);
       if (t % 10 == 0)
-	print_output("outfile.txt", particles, np, true);
+	print_output("outfile.txt", particles, true);
     }
   
   return 0;
