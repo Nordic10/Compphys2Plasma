@@ -17,6 +17,7 @@ float e0;
 float mu0;
 float q;
 float m;
+float w;
 
 
 void set_grid(grid_struct* grid)
@@ -31,33 +32,35 @@ void set_grid(grid_struct* grid)
 void distribute_particles(particle* p, grid_struct* grid)
 {
   int x, y, idx;
-  float x_, y_, weight;
+  float x_, y_;
   set_grid(grid);
-  for (int i = 0; i < np; i++)
+  for (int i = 0; i < np; ++i)
     {
-      p[i].r.x = random_float(i, true) * dx;
-      p[i].r.y = random_float(i, false)* dy;
+      p[i].r.x = random_float(i, true) * dx * nx;
+      p[i].r.y = random_float(i, false) * dy * ny;
       x = (int)roundf(p[i].r.x / dx);
       y = (int)roundf(p[i].r.y / dy);
       x_ = abs((p[i].r.x / dx - x) + 0.5f);
       y_ = abs((p[i].r.y / dx - y) + 0.5f);
       idx = nx * y + x;
-      weight = q;
-      grid->rho[idx] += weight * y_ * x_;
-      grid->rho[idx - 1] += weight * y_ * (1 - x_);
-      grid->rho[idx - nx] += dx * weight * (1 - y_) * x_;
-      grid->rho[idx - nx - 1] += dy * weight * (1 - y_) * (1 - x_);
+      grid->rho[idx] += w * y_ * x_;
+      grid->rho[idx - 1] += w * y_ * (1 - x_);
+      grid->rho[idx - nx] += w * (1 - y_) * x_;
+      grid->rho[idx - nx - 1] += w * (1 - y_) * (1 - x_);
     }
 }
 
 void initialize_fields(grid_struct* grid)
 {
-  int idx = nx;
-  float tol = 0.1f;
+  int idx = 0;
+  float tol = 0.00001f;
   float temp = 0;
   bool loop = true;
+  float dx2 = dx * dx;
+  float dy2 = dy * dy;
   while (loop)
     {
+      idx = nx;
       for (int y = 1; y < ny - 1; y++)
 	{
 	  for (int x = 1; x < nx - 1; x++)
@@ -66,13 +69,13 @@ void initialize_fields(grid_struct* grid)
 	      if (loop)
 		{
 		  temp = grid->phi[idx];
-		  grid->phi[idx] = 0.25f * (grid->phi[idx + 1] + grid->phi[idx - 1] + grid->phi[idx + nx] + grid->phi[idx - nx] + grid->rho[idx] / e0);
+		  grid->phi[idx] = 0.5f * (dy2 * (grid->phi[idx + 1] + grid->phi[idx - 1]) + dx2 * (grid->phi[idx + nx] + grid->phi[idx - nx]) + dy2 * dx2 * grid->rho[idx] / e0) / (dy2 + dx2);
 		  temp = abs(temp - grid->phi[idx]) / temp;
 		  if (temp < tol)
 		    loop = false;
 		}
 	      else
-		grid->phi[idx] = 0.25f * (grid->phi[idx + 1] + grid->phi[idx - 1] + grid->phi[idx + nx] + grid->phi[idx - nx] + grid->rho[idx] / e0);
+		grid->phi[idx] = 0.5f * (dy2 * (grid->phi[idx + 1] + grid->phi[idx - 1]) + dx2 * (grid->phi[idx + nx] + grid->phi[idx - nx]) + dy2 * dx2 * grid->rho[idx] / e0) / (dy2 + dx2);
 	    }
 	  idx += 2;
 	}
@@ -86,29 +89,61 @@ void initialize_fields(grid_struct* grid)
 	  grid->E[idx].x = (grid->phi[idx - 1] - grid->phi[idx]) / dx;
 	  grid->E[idx].y = (grid->phi[idx -nx] - grid->phi[idx]) / dy;
 	}
+      ++idx;
     }
 }
 
-void field_deposition(particle* particles, grid_struct* grid)
+void deposit_fields(particle* list, grid_struct* grid)
 {
   particle* p;
-  float weight, dt2;
-  float x_, y_;
+  float x_, y_, _x, _y;
   int x, y, idx;
-  weight = q * dt;
-  dt2 = dt * dt / 12;
   for (int i = 0; i < np; i++)
     {
-      p = &particles[i];
+      p = &list[i];
       x = (int)roundf(p->r.x / dx);
       y = (int)roundf(p->r.y / dy);
       x_ = abs((p->r.x / dx - x) + 0.5f);
       y_ = abs((p->r.y / dx - y) + 0.5f);
+      p->r += dt * p->v;
+      _x = abs((p->r.x / dx - x) + 0.5f);
+      _y = abs((p->r.y / dx - y) + 0.5f);
       idx = nx * y + x;
-      grid->j[idx].x += p->v.x * weight * (x_ + p->v.y * p->v.z * dt2);
-      grid->j[idx].y += p->v.y * weight * (y_ + p->v.y * p->v.z * dt2);
-      grid->j[idx - 1].x += p->v.x * weight * (1 - x_ + p->v.y * p->v.z * dt2);
-      grid->j[idx -nx].y += p->v.y * weight * (1 - y_ + p->v.y * p->v.z * dt2);
+      grid->j[idx].x += p->v.x * w * (y_ + _y) / 2;
+      grid->j[idx].y += p->v.y * w * (x_ + _x) / 2;
+      grid->j[idx -nx].x += p->v.x * w * (2 - y_ - _y) / 2;
+      grid->j[idx - 1].y += p->v.y * w * (2 - x_ - _x) / 2;
+    }
+}
+
+void update_boundary(grid_struct* grid)
+{
+  int i = nx - 1;
+  for (int y = 0; y < ny - 1; y++)
+    {
+      grid->B[i].z = grid->B[i - 1].z;
+      i += nx;
+    }
+  i = nx * (ny - 1);
+  for (int x = 0; x < nx; x++)
+    {
+      grid->B[i].z = grid->B[i - nx].z;
+      ++i;
+    }
+  
+  i = 0;
+  for (int y = 0; y < ny - 1; y++)
+    {
+      grid->E[i].x = grid->E[i + 1].x;
+      grid->E[i].y = grid->E[i + 1].y;
+      i += nx;
+    }
+  i = 0;
+  for (int x = 0; x < nx; x++)
+    {
+      grid->E[i].x = grid->E[i + nx].x;
+      grid->E[i].y = grid->E[i + nx].y;
+      ++i;
     }
 }
 
@@ -134,9 +169,9 @@ void update_fields(grid_struct* grid)
       for (int x = 1; x < nx; x++)
 	{
 	  ++i;
-	  grid->E[i].x -= (dt/2 * (/*(grid->B[i].y - grid->B[i-nxy].y) / dz*/ - (grid->B[i].z - grid->B[i -nx].z) / dy) / mu0 + grid->j[i].x) / e0;
-	  grid->E[i].y -= (dt/2 * ((grid->B[i].z - grid->B[i - 1].z) / dx /*- (grid->B[i].x - grid->B[i-nxy].x) / dz*/) / mu0 + grid->j[i].y) / e0;
-	  //grid->E[i].z -= (dt/2 * ((grid->B[i].x - grid->B[i -nx].x) / dy - (grid->B[i].y - grid->B[i - 1].y) / dx) / mu0 + grid->j[i].z) / e0;
+	  grid->E[i].x -= dt/2 * ((/*(grid->B[i].y - grid->B[i-nxy].y) / dz*/ - (grid->B[i].z - grid->B[i -nx].z) / dy) / mu0 + grid->j[i].x) / e0;
+	  grid->E[i].y -= dt/2 * (((grid->B[i].z - grid->B[i - 1].z) / dx /*- (grid->B[i].x - grid->B[i-nxy].x) / dz*/) / mu0 + grid->j[i].y) / e0;
+	  //grid->E[i].z -= dt/2 * (((grid->B[i].x - grid->B[i -nx].x) / dy - (grid->B[i].y - grid->B[i - 1].y) / dx) / mu0 + grid->j[i].z) / e0;
 	}
       ++i;
     }
@@ -147,9 +182,9 @@ void update_fields(grid_struct* grid)
       for (int x = 1; x < nx; x++)
 	{
 	  ++i;
-	  grid->E[i].x -= (dt/2 * (/*(grid->B[i].y - grid->B[i-nxy].y) / dz*/ - (grid->B[i].z - grid->B[i -nx].z) / dy) / mu0 + grid->j[i].x) / e0;
-	  grid->E[i].y -= (dt/2 * ((grid->B[i].z - grid->B[i - 1].z) / dx /*- (grid->B[i].x - grid->B[i-nxy].x) / dz*/) / mu0 + grid->j[i].y) / e0;
-	  //grid->E[i].z -= (dt/2 * ((grid->B[i].x - grid->B[i -nx].x) / dy - (grid->B[i].y - grid->B[i - 1].y) / dx) / mu0 + grid->j[i].z) / e0;
+	  grid->E[i].x -= dt/2 * ((/*(grid->B[i].y - grid->B[i-nxy].y) / dz*/ - (grid->B[i].z - grid->B[i -nx].z) / dy) / mu0 + grid->j[i].x) / e0;
+	  grid->E[i].y -= dt/2 * (((grid->B[i].z - grid->B[i - 1].z) / dx /*- (grid->B[i].x - grid->B[i-nxy].x) / dz*/) / mu0 + grid->j[i].y) / e0;
+	  //grid->E[i].z -= dt/2 * (((grid->B[i].x - grid->B[i -nx].x) / dy - (grid->B[i].y - grid->B[i - 1].y) / dx) / mu0 + grid->j[i].z) / e0;
 	}
       ++i;
     }
@@ -168,7 +203,7 @@ void update_fields(grid_struct* grid)
     }
 }
 
-void field_gathering(particle* particles, grid_struct* grid, external_field* ext_field)
+void gather_fields(particle* list, grid_struct* grid, external_field* ext)
 {
   float x_, y_;
   int x, y, idx;
@@ -176,56 +211,56 @@ void field_gathering(particle* particles, grid_struct* grid, external_field* ext
   particle* p;
   for (int i = 0; i < np; i++)
     {
-      p = &particles[i];
+      p = &list[i];
       x = (int)roundf(p->r.x / dx);
       y = (int)roundf(p->r.y / dy);
       x_ = abs((p->r.x / dx - x) + 0.5f);
       y_ = abs((p->r.y / dx - y) + 0.5f);
       idx = nx * y + x;
-      weight = q;
+      weight = 1; // w* (dx * dy);
       
       if (x == 0 || y == 0)
 	{
 	  if (x == 0 && y == 0)
 	    {
-	      p->E.x = weight * (grid->E[idx].x + ext_field->E[idx].x) * x_;
-	      p->E.y = weight * (grid->E[idx].y + ext_field->E[idx].y) * y_;
+	      p->E.x = weight * grid->E[idx].x * y_;
+	      p->E.y = weight * grid->E[idx].y * x_;
 	    }
 	  else if (x == 0)
 	    {
-	      p->E.x = weight * ((grid->E[idx].x + ext_field->E[idx].x) * x_ + (grid->E[idx -1].x + grid->E[idx -1].x)* (1 - x_));
-	      p->E.y = weight *  (grid->E[idx].y + ext_field->E[idx].y) * y_;
+	      p->E.x = weight * (grid->E[idx].x * y_ + grid->E[idx - nx].x * (1 - y_));
+	      p->E.y = weight * grid->E[idx].y * x_;
 	    }
 	  else
 	    {
-	      p->E.x = weight *  (grid->E[idx].x + ext_field->E[idx].x) * x_;
-	      p->E.y = weight * ((grid->E[idx].y + ext_field->E[idx].y) * y_ + (grid->E[idx-nx].y + grid->E[idx-nx].y)* (1 - y_));
+	      p->E.x = weight * grid->E[idx].x * y_;
+	      p->E.y = weight * (grid->E[idx].y * x_ + grid->E[idx - 1].y * (1 - x_));
 	    }
 	}
       else
 	{
-	  p->E.x = weight * ((grid->E[idx].x + ext_field->E[idx].x) * x_ + (grid->E[idx -1].x + grid->E[idx -1].x)* (1 - x_));
-	  p->E.y = weight * ((grid->E[idx].y + ext_field->E[idx].y) * y_ + (grid->E[idx-nx].y + grid->E[idx-nx].y)* (1 - y_));
+	  p->E.x = weight * (grid->E[idx].x * y_ + grid->E[idx - nx].x * (1 - y_));
+	  p->E.y = weight * (grid->E[idx].y * x_ + grid->E[idx - 1].y * (1 - x_));
 	}
       
       if (x != 0 && y != 0)
-	p->B.z = weight * ((grid->B[idx].z + ext_field->B[idx].z) * x_ * y_ + (grid->B[idx-1].z + ext_field->B[idx -1].z)* x_ * (1 - y_) + (grid->B[idx-nx].z + ext_field->B[idx-nx].z) * (1 - x_) * y_ + (grid->B[idx-nx-1].z + grid->B[idx-nx-1].z)* (1 - x_) * (1 - y_));
+	p->B.z = weight * (grid->B[idx].z * x_ * y_ + grid->B[idx - 1].z * x_ * (1 - y_) + grid->B[idx - nx].z * (1 - x_) * y_ + grid->B[idx - nx - 1].z * (1 - x_) * (1 - y_));
       else if (x == 0 && y != 0)
-	p->B.z = weight * ((grid->B[idx].z + ext_field->B[idx].z) * x_ * y_ + (grid->B[idx-nx].z + ext_field->B[idx-nx].z) * (1 - x_) * y_);
+	p->B.z = weight * (grid->B[idx].z * x_ * y_ + grid->B[idx -nx].z * (1 - x_) * y_);
       else if (y == 0 && x != 0)
-	p->B.z = weight * ((grid->B[idx].z + ext_field->B[idx].z) * x_ * y_ + (grid->B[idx -1].z + ext_field->B[idx -1].z) * x_ * (1 - y_));
+	p->B.z = weight * (grid->B[idx].z * x_ * y_ + grid->B[idx - 1].z * x_ * (1 - y_));
       else
-	p->B.z = weight * ((grid->B[idx].z + ext_field->B[idx].z) * x_ * y_);
+	p->B.z = weight * (grid->B[idx].z * x_ * y_);
     }
 }
 
-void push_particles(particle* particles)
+void push_particles(particle* list)
 {
   float3 p0, p1, p_, t, s;
   particle* p; float a;
   for (int i = 0; i < np; i++)
     {
-      p = &particles[i];
+      p = &list[i];
       a = q * dt / 2;
       p0 = m * p->v / sqrtf(1 - mag(p->v / c)) + a * p->E;
       t = a * p->B;
@@ -233,8 +268,7 @@ void push_particles(particle* particles)
       p1 = p0 + cross(p0 + cross(p0, t), s);
       p_ = p1 + a * p->E;
       p->v = p_ / (m * sqrtf(1 + mag(p_ / (m * c))));
-
-      // Need to implement cell stepping for Wall boundaries
+      
       
       if (p->r.x + dt * p->v.x > nx)
 	{
@@ -256,18 +290,13 @@ void push_particles(particle* particles)
 	  p->v.y *= -1;
 	  p->r.y *= -1;
 	}
-      
-      p->r += dt * p->v;
     }
 }
 
 void reset_grid(grid_struct* grid)
 {
   for (int i = 0; i < nx * ny; i++)
-    {
-      grid->rho[i] = 0;
-      grid->j[i] = { 0, 0, 0 };
-    }
+    grid->j[i] = { 0, 0, 0 };
 }
 
 void print_output(const char* filename, particle* p_list,  bool app)

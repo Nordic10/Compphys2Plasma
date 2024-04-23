@@ -7,32 +7,38 @@ int main()
   np = 10000;
 
   // Electron Density
-  float ne = 1 * powf(10, 6);
+  float ne = 1e20f;
   
   // Grid Number
   nx = 128;
   ny = 128;
   
   // Grid Spacing
-  dx = 1 * powf(10, -6);
-  dy = 1 * powf(10, -6);
-  dz = 1 * powf(10, -6);
+  dx = 1e-5f;
+  dy = 1e-5f;
+  dz = 1e-5f;
   
   // Time Step
-  dt = 1 * powf(10, -9);
+  dt = 1e-15f;
   
   // Step Count
-  nt = 100;
+  nt = 1000;
   
   // Material Constants
-  c = 2.9979f * powf(10, -8);
-  e0 = 8.85f * powf(10, -12);
-  mu0 = 1.26f * powf(10, -6);
+  c = 2.9979e-8f;
+  e0 = 8.85e-12f;
+  mu0 = 1.26e-6f;
   
   // Particle Constants
-  q = 1.6f * powf(10, -19) * (ne * dx * dy / 4);
-  m = 9.1f * powf(10, -31) * (ne * dx * dy / 4);
+  q = 1.6e-19f;
+  m = 9.1e-31f;
 
+  // Particle Weight
+  float w = q * ne * (nx * ny) / np;
+  m = w * (dx * dy) * m / q; // Mass per Macroparticle
+  q = w * (dx * dy); // Charge per Macroparticle
+  
+  
   //--------------------External Fields and Boundary Conditions--------------------//
   //Create External Fields
   external_field* ext_field = new external_field;
@@ -65,12 +71,13 @@ int main()
   print_output("outfile.txt", particles, false);
   for (int t = 0; t < nt; ++t)
     {
-      field_deposition(particles, grid);
+      deposit_fields(particles, grid);
+      update_boundary(grid);
       update_fields(grid);
-      field_gathering(particles, grid, ext_field);
+      gather_fields(particles, grid, ext_field);
       push_particles(particles);
-      reset_grid(grid);
-      if (t % 10 == 0)
+      //reset_grid(grid);
+      if (t % 100 == 0)
 	print_output("outfile.txt", particles, true);
     }
   
