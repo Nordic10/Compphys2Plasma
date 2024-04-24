@@ -37,8 +37,8 @@ void distribute_particles(particle* p, grid_struct* grid)
   set_grid(grid);
   for (int i = 0; i < np; ++i)
     {
-      p[i].r.x = random_float(i, true) * dx * nx;
-      p[i].r.y = random_float(i, false) * dy * ny;
+      p[i].r.x = random_float(i, true) * dx * nx + dx;
+      p[i].r.y = random_float(i, false) * dy * ny + dy;
       x = (int)roundf(p[i].r.x / dx);
       y = (int)roundf(p[i].r.y / dy);
       x_ = abs((p[i].r.x / dx - x) + 0.5f);

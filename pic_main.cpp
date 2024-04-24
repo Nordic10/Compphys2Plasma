@@ -25,7 +25,7 @@ int main()
   nt = 1000;
   
   // Material Constants
-  c = 2.9979e-8f;
+  c = 2.9979e8f;
   e0 = 8.85e-12f;
   mu0 = 1.26e-6f;
   
