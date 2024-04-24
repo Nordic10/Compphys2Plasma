@@ -62,7 +62,7 @@ int main()
 	{
 	  //walls->wall[y*nx+x] = 1;
 	}
-  
+      
   particle* particles = new particle[np];
   grid_struct* grid = new grid_struct;
   
@@ -77,9 +77,8 @@ int main()
       gather_fields(particles, grid, ext_field);
       push_particles(particles);
       //reset_grid(grid);
-      if (t % 100 == 0)
-	print_output("outfile.txt", particles, true);
     }
+  print_output("outfile.txt", particles, true);
   
   return 0;
 }

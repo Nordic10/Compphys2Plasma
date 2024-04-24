@@ -2,6 +2,7 @@
 #include "pic_math.h"
 #include <math.h>
 #include <fstream>
+#include <iostream>
 
 // Simulation Constants
 int nx;
