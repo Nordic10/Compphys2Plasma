@@ -54,7 +54,7 @@ void distribute_particles(particle* p, grid_struct* grid)
 void initialize_fields(grid_struct* grid)
 {
   int idx = 0;
-  float tol = 0.00001f;
+  float tol = 0.0001f;
   float temp = 0;
   bool loop = true;
   float dx2 = dx * dx;

@@ -34,7 +34,7 @@ int main()
   m = 9.1e-31f;
 
   // Particle Weight
-  float w = q * ne * (nx * ny) / np;
+  w = q * ne * (nx * ny) / np;
   m = w * (dx * dy) * m / q; // Mass per Macroparticle
   q = w * (dx * dy); // Charge per Macroparticle
   
@@ -65,7 +65,7 @@ int main()
       
   particle* particles = new particle[np];
   grid_struct* grid = new grid_struct;
-  
+
   distribute_particles(particles, grid);
   initialize_fields(grid);
   print_output("outfile.txt", particles, false);
