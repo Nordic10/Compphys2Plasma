@@ -257,14 +257,17 @@ void gather_fields(particle* list, grid_struct* grid, external_field* ext)
 void push_particles(particle* list)
 {
   float3 p0, p1, p_, t, s;
-  particle* p; float a;
+  particle* p; float a, b;
   for (int i = 0; i < np; i++)
     {
       // Standard Boris Pusher
       p = &list[i];
       a = q * dt / 2;
       // If speeds get too close to c this value will become nan
-      p0 = m * p->v / sqrtf(1 - mag(p->v / c)) + a * p->E;
+      b = 1 - mag(p->v / c);
+      if (b <= 0) 
+        b=1e-7;
+      p0 = m * p->v / sqrtf(b) + a * p->E;
       t = a * p->B;
       s = 2 * t / (1 + mag(t));
       p1 = p0 + cross(p0 + cross(p0, t), s);

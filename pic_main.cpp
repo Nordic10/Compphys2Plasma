@@ -49,8 +49,16 @@ int main()
       for (int x = 0; x < nx; x++)
 	for (int y = 0; y < ny; y++)
 	  {
-	    ext_field->E[nx*y+x] = {1e8, 0, 0};
+      float xcoord = x-float(nx/2);
+      float ycoord = y-float(ny/2);
+      float Emag = 1e7 * (50 - sqrt(xcoord*xcoord + ycoord*ycoord));
+      float Ex = ((x-nx/2)*Emag);
+      float Ey = ((y-ny/2)*Emag);
+      //std::cout << "Ex: " << Ex << std::endl;
+      //std::cout << "Ey: " << Ey << std::endl;
+	    ext_field->E[nx*y+x] = {Ex, Ey, 0};
 	    ext_field->B[nx*y+x] = {0, 0, 0};
+      // Magnetic field magitude - 1e20
 	  }
     }
       
