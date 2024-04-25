@@ -3,7 +3,8 @@
 #include <math.h>
 #include <fstream>
 #include <iostream>
-
+#include <cmath>
+#include <random>
 // Simulation Constants
 int nx;
 int ny;
@@ -29,6 +30,54 @@ void set_grid(grid_struct* grid)
   grid->E = new float3[nx * ny]();
   grid->B = new float3[nx * ny]();
 }
+
+// void initialize_velocities(particle* p, float temperature = 40000.0) {
+//     const float me = 9.10938356e-31f;  // in kg
+//     const float k_B = 1.38064852e-23f;  // Boltzmann constant in J/K
+//     float sigma = sqrt(k_B * temperature / me);
+//     float sigma2 = 0.6 * sigma;
+//     // Random device and generator
+//     std::random_device rd;
+//     std::mt19937 gen(rd());
+//     std::uniform_real_distribution<float> uniform(0.0, 1.0);
+//     std::normal_distribution<float> Gauss(1.8 * sigma2,sigma2); //The "maxwell boltzman" in 2D
+//     for (int i = 0; i < np; ++i) {
+//       float v, f_v, g_v, u;
+//       do {
+//           v = Gauss(gen);  // Proposing v from a Rayleigh distribution
+//           g_v = (v / sigma / sigma) * exp(-v * v / (2 * sigma * sigma));
+//           f_v = (1 / sigma2 / sigma2 / sqrt(2 * M_PI)) * exp(-(v-1.8 * sigma)*(v-1.8 * sigma) / (2 * sigma2 * sigma2));
+//           u = uniform(gen);
+//       } while (u >= f_v / g_v); 
+//       std::cout << i <<" / "<<np<<"\r";
+//       float angle = uniform(gen) * 2 * M_PI;  // Generate random angle
+//       // Decompose speed into x and y components
+//       p[i].v.x = v * cos(angle);
+//       p[i].v.y = v * sin(angle);
+//     }
+//     }
+
+void initialize_velocities(particle* p, float temperature = 40000.0) {
+    const float me = 9.10938356e-31f;  // in kg
+    const float k_B = 1.38064852e-23f;  // Boltzmann constant in J/K
+    float sigma = sqrt(k_B * temperature / me);
+    // Random device and generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> angular(0.0, 2 * M_PI);
+    std::normal_distribution<float> Gauss(0,sigma); //The "maxwell boltzman" in 2D
+    for (int i = 0; i < np; ++i) {
+      float v1, v2, v, angle;
+      v1 = Gauss(gen);
+      v2 = Gauss(gen);
+      v  = sqrt(v1*v1+v2*v2);
+      std::cout << i <<" / "<<np<<"\r";
+      angle = angular(gen);
+      p[i].v.x = v * cos(angle);
+      p[i].v.y = v * sin(angle);
+    }
+}
+
 
 void distribute_particles(particle* p, grid_struct* grid)
 {
@@ -311,7 +360,7 @@ void print_output(const char* filename, particle* p_list,  bool app)
   for (int i = 0; i < np; i++)
     {
       p = p_list[i];
-      outfile << p.r.x << ',' << p.r.y << ',' << p.r.z << std::endl;
+      outfile << p.r.x << ',' << p.r.y << ',' << p.r.z<< ',' << p.v.x << ',' << p.v.y << std::endl;
     } 
 }
 

@@ -59,6 +59,7 @@ int main()
 
   distribute_particles(particles, grid);
   initialize_fields(grid);
+  initialize_velocities(particles,60000);
   print_output("outfile.txt", particles, false);
   for (int t = 0; t < nt; ++t)
     {

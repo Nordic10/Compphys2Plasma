@@ -6,9 +6,9 @@ float noise(float x, float y, int seed)
   const unsigned w = 8 * sizeof(unsigned);
   const unsigned s = w / 2;
   unsigned a = x, b = y, c = seed;
-  a *= 3284157443; b ^= a << s | a >> w - s;
-  b *= 1911520717; a ^= b << s | b >> w - s;
-  c *= 4628058208; a ^= c << s | c >> w - s;
+  a *= 3284157443; b ^= a << s | a >> (w - s);
+  b *= 1911520717; a ^= b << s | b >> (w - s);
+  c *= 4628058208; a ^= c << s | c >> (w - s);
   a *= 2048419325;
   float random = a * (0.5 / ~(~0u >> 1));
   return random;
