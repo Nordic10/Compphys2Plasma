@@ -7,19 +7,19 @@ int main()
   np = 10000;
 
   // Electron Density
-  float ne = 1e20f;
+  float ne = 1e15f;
   
   // Grid Number
   nx = 128;
   ny = 128;
   
   // Grid Spacing
-  dx = 1e-5f;
-  dy = 1e-5f;
-  dz = 1e-5f;
+  dx = 1e-3f;
+  dy = 1e-3f;
+  dz = 1e-3f;
   
   // Time Step
-  dt = 1e-15f;
+  dt = 1e-12f;
   
   // Step Count
   nt = 1000;
@@ -49,19 +49,10 @@ int main()
       for (int x = 0; x < nx; x++)
 	for (int y = 0; y < ny; y++)
 	  {
-	    //ext_fields->E[y*nx+x] = {f(x), f(y), f(z)};
-	    //ext_fields->B[y*nx+x] = {f(x), f(y), f(z)};
+	    ext_field->E[nx*y+x] = {1e8, 0, 0};
+	    ext_field->B[nx*y+x] = {0, 0, 0};
 	  }
     }
-
-  // Create Walls
-  wall_boundary* walls = nullptr;
-  if (walls != nullptr)
-    for (int x = 0; x < nx; x++)
-      for (int y = 0; y < ny; y++)
-	{
-	  //walls->wall[y*nx+x] = 1;
-	}
       
   particle* particles = new particle[np];
   grid_struct* grid = new grid_struct;
@@ -77,6 +68,8 @@ int main()
       gather_fields(particles, grid, ext_field);
       push_particles(particles);
       //reset_grid(grid);
+      if (t%10)
+	print_output("outfile.txt", particles, true);
     }
   print_output("outfile.txt", particles, true);
   

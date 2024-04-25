@@ -218,40 +218,39 @@ void gather_fields(particle* list, grid_struct* grid, external_field* ext)
       x_ = abs((p->r.x / dx - x) + 0.5f);
       y_ = abs((p->r.y / dx - y) + 0.5f);
       idx = nx * y + x;
-      weight = 1; // w* (dx * dy);
       
       if (x == 0 || y == 0)
 	{
 	  if (x == 0 && y == 0)
 	    {
-	      p->E.x = weight * grid->E[idx].x * y_;
-	      p->E.y = weight * grid->E[idx].y * x_;
+	      p->E.x = (grid->E[idx].x + ext->E[idx].x) * y_;
+	      p->E.y = (grid->E[idx].y + ext->E[idx].y) * x_;
 	    }
 	  else if (x == 0)
 	    {
-	      p->E.x = weight * (grid->E[idx].x * y_ + grid->E[idx - nx].x * (1 - y_));
-	      p->E.y = weight * grid->E[idx].y * x_;
+	      p->E.x = (grid->E[idx].x + ext->E[idx].x) * y_ + (grid->E[idx-1].x + ext->E[idx-1].x) * (1 - y_);
+	      p->E.y = (grid->E[idx].y + ext->E[idx].y) * x_;
 	    }
 	  else
 	    {
-	      p->E.x = weight * grid->E[idx].x * y_;
-	      p->E.y = weight * (grid->E[idx].y * x_ + grid->E[idx - 1].y * (1 - x_));
+	      p->E.x = (grid->E[idx].x + ext->E[idx].x)* y_;
+	      p->E.y = (grid->E[idx].y + ext->E[idx].y) * x_ + (grid->E[idx-nx].y + ext->E[idx-nx].y) * (1 - x_);
 	    }
 	}
       else
 	{
-	  p->E.x = weight * (grid->E[idx].x * y_ + grid->E[idx - nx].x * (1 - y_));
-	  p->E.y = weight * (grid->E[idx].y * x_ + grid->E[idx - 1].y * (1 - x_));
+	  p->E.x = (grid->E[idx].x + ext->E[idx].x) * y_ + (grid->E[idx-1].x + ext->E[idx-1].x) * (1 - y_);
+	  p->E.y = (grid->E[idx].y + ext->E[idx].y) * x_ + (grid->E[idx-nx].y + ext->E[idx-nx].y) * (1 - x_);
 	}
       
       if (x != 0 && y != 0)
-	p->B.z = weight * (grid->B[idx].z * x_ * y_ + grid->B[idx - 1].z * x_ * (1 - y_) + grid->B[idx - nx].z * (1 - x_) * y_ + grid->B[idx - nx - 1].z * (1 - x_) * (1 - y_));
+	p->B.z = (grid->B[idx].z + ext->B[idx].z) * x_ * y_ + (grid->B[idx-1].z + ext->B[idx-1].z) * (1 - x_) * y_ + (grid->B[idx-nx].z + ext->B[idx-nx].z) * x_ * (1 - y_) + (grid->B[idx-nx-1].z + ext->B[idx-nx-1].z) * (1 - x_) * (1 - y_);
       else if (x == 0 && y != 0)
-	p->B.z = weight * (grid->B[idx].z * x_ * y_ + grid->B[idx -nx].z * (1 - x_) * y_);
+	p->B.z = (grid->B[idx].z + ext->B[idx].z) * x_ * y_ + (grid->B[idx-nx].z + ext->B[idx-nx].z) * x_ * (1 - y_);
       else if (y == 0 && x != 0)
-	p->B.z = weight * (grid->B[idx].z * x_ * y_ + grid->B[idx - 1].z * x_ * (1 - y_));
+	p->B.z = (grid->B[idx].z + ext->B[idx].z) * x_ * y_ + (grid->B[idx-1].z + ext->B[idx-1].z) * (1 - x_) * y_;
       else
-	p->B.z = weight * (grid->B[idx].z * x_ * y_);
+	p->B.z = (grid->B[idx].z + ext->B[idx].z) * x_ * y_;
     }
 }
 
@@ -261,8 +260,10 @@ void push_particles(particle* list)
   particle* p; float a;
   for (int i = 0; i < np; i++)
     {
+      // Standard Boris Pusher
       p = &list[i];
       a = q * dt / 2;
+      // If speeds get too close to c this value will become nan
       p0 = m * p->v / sqrtf(1 - mag(p->v / c)) + a * p->E;
       t = a * p->B;
       s = 2 * t / (1 + mag(t));
@@ -270,21 +271,20 @@ void push_particles(particle* list)
       p_ = p1 + a * p->E;
       p->v = p_ / (m * sqrtf(1 + mag(p_ / (m * c))));
       
-      
-      if (p->r.x + dt * p->v.x > nx)
+      if (p->r.x + dt * p->v.x > nx * dx)
 	{
 	  p->v.x *= -1;
-	  p->r.x = 2 * nx - p->r.x;
+	  p->r.x = 2 * nx * dx - p->r.x;
 	}
       else if (p->r.x + dt * p->v.x < 0)
 	{
 	  p->v.x *= -1;
 	  p->r.x *= -1;
 	}
-      if (p->r.y + dt * p->v.y > ny)
+      if (p->r.y + dt * p->v.y > ny * dy)
 	{
 	  p->v.y *= -1;
-	  p->r.y = 2 * ny - p->r.y;
+	  p->r.y = 2 * ny * dy - p->r.y;
 	}
       else if (p->r.y + dt * p->v.y < 0)
 	{
