@@ -22,7 +22,7 @@ int main()
   dt = 1e-12f;
   
   // Step Count
-  nt = 1000;
+  nt = 10000;
   
   // Material Constants
   c = 2.9979e8f;
@@ -70,6 +70,8 @@ int main()
   print_output("outfile.txt", particles, false);
   for (int t = 0; t < nt; ++t)
     {
+      if (t%100 == 0) 
+        std::cout << t << std::endl;
       deposit_fields(particles, grid);
       update_boundary(grid);
       update_fields(grid);
@@ -80,6 +82,7 @@ int main()
 	print_output("outfile.txt", particles, true);
     }
   print_output("outfile.txt", particles, true);
+  print_fields("outfields.txt", ext_field);
   
   return 0;
 }

@@ -110,10 +110,10 @@ void deposit_fields(particle* list, grid_struct* grid)
       _x = abs((p->r.x / dx - x) + 0.5f);
       _y = abs((p->r.y / dx - y) + 0.5f);
       idx = nx * y + x;
-      grid->j[idx].x += p->v.x * w * (y_ + _y) / 2;
-      grid->j[idx].y += p->v.y * w * (x_ + _x) / 2;
-      grid->j[idx -nx].x += p->v.x * w * (2 - y_ - _y) / 2;
-      grid->j[idx - 1].y += p->v.y * w * (2 - x_ - _x) / 2;
+      grid->j[idx + nx].x += p->v.x * w * (y_ + _y) / 2;
+      grid->j[idx + 1].y += p->v.y * w * (x_ + _x) / 2;
+      grid->j[idx].x += p->v.x * w * (2 - y_ - _y) / 2;
+      grid->j[idx].y += p->v.y * w * (2 - x_ - _x) / 2;
     }
 }
 
@@ -316,5 +316,21 @@ void print_output(const char* filename, particle* p_list,  bool app)
       p = p_list[i];
       outfile << p.r.x << ',' << p.r.y << ',' << p.r.z << std::endl;
     } 
+}
+
+void print_fields(const char* filename, external_field* ext_field) {
+  std::ofstream outfile;
+  outfile.open(filename);
+  float3 E;
+  float3 B;
+
+  for (int y = 0; y < ny; y++) {
+    for (int x = 0; x < nx; x++) {
+      E = ext_field->E[nx*y+x];
+      B = ext_field->B[nx*y+x];
+
+      outfile << x << "," << y << "," << E.x << "," << E.y << "," << E.z << "," << B.x << "," << B.y << "," << B.z << std::endl;
+    }
+  }
 }
 
