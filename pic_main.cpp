@@ -10,8 +10,8 @@ int main()
   float ne = 1e15f;
   
   // Grid Number
-  nx = 128;
-  ny = 128;
+  nx = 256;
+  ny = 256;
   
   // Grid Spacing
   dx = 1e-3f;
@@ -22,7 +22,7 @@ int main()
   dt = 1e-12f;
   
   // Step Count
-  nt = 10000;
+  nt = 5000;
   
   // Material Constants
   c = 2.9979e8f;
@@ -45,6 +45,7 @@ int main()
   if (ext_field != nullptr)
     {
       ext_field->E = new float3[nx*ny]();
+      //ext_field->E = read_Efields("Efield.txt");
       ext_field->B = new float3[nx*ny]();
       for (int x = 0; x < nx; x++)
 	for (int y = 0; y < ny; y++)
@@ -54,8 +55,6 @@ int main()
       float Emag = 1e7 * (50 - sqrt(xcoord*xcoord + ycoord*ycoord));
       float Ex = ((x-nx/2)*Emag);
       float Ey = ((y-ny/2)*Emag);
-      //std::cout << "Ex: " << Ex << std::endl;
-      //std::cout << "Ey: " << Ey << std::endl;
 	    ext_field->E[nx*y+x] = {Ex, Ey, 0};
 	    ext_field->B[nx*y+x] = {0, 0, 0};
       // Magnetic field magitude - 1e20
@@ -78,7 +77,7 @@ int main()
       gather_fields(particles, grid, ext_field);
       push_particles(particles);
       //reset_grid(grid);
-      if (t%10)
+      if (t%100)
 	print_output("outfile.txt", particles, true);
     }
   print_output("outfile.txt", particles, true);

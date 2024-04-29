@@ -3,6 +3,9 @@
 #include <math.h>
 #include <fstream>
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
 
 // Simulation Constants
 int nx;
@@ -332,5 +335,40 @@ void print_fields(const char* filename, external_field* ext_field) {
       outfile << x << "," << y << "," << E.x << "," << E.y << "," << E.z << "," << B.x << "," << B.y << "," << B.z << std::endl;
     }
   }
+}
+
+float3* read_Efields(const char* filename) {
+  std::ifstream infile(filename);
+  std::string line;
+
+    float3* E = new float3[nx*ny]();
+
+  while (std::getline(infile, line)) {
+    int x, y;
+    float dx, dy;
+
+    std::stringstream ss(line);
+    std::string cell;
+    std::vector<std::string> row;
+    while (std::getline(ss, cell, ',')) {
+      row.push_back(cell);
+    }
+    x = std::stoi(row[0]);
+    y = std::stoi(row[1]);
+    dx = 1e7 * std::stof(row[2]);
+    dy = 1e7 * std::stof(row[3]);
+
+    E[nx*y+x] = {dx,dy, 0};
+  }
+
+  for (int i=0; i < nx; i++) {
+    for (int j=0; j < ny; j++) {
+      if (i==0 || i==nx-1 || j==0 || j==ny-1) {
+        E[nx*j+i] = {0,0,0}; //gradient doesn't cover electric field on boundaries, so they are set to 0
+      }
+    }
+  }
+
+  return E;
 }
 
